@@ -27,6 +27,17 @@ describe StyleGuide, '#violations' do
   end
 
   context 'with default configuration' do
+    describe 'private prefix' do
+      it 'does not have violation' do
+        # "Use 2 (not -6) spaces for indentation."
+        expect(violations_in(<<-CODE)).to eq []
+private def foo
+  bar
+end
+        CODE
+      end
+    end
+
     describe 'line character limit' do
       it 'does not have violation' do
         expect(violations_in('a' * 80)).to be_empty
