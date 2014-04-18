@@ -1,0 +1,71 @@
+App.directive 'repoList', ['Repo', 'Sync', (Repo, Sync) ->
+  scope: {}
+  templateUrl: '/templates/repo_list'
+
+  link: (scope, element, attrs) ->
+    loadRepos = ->
+      scope.syncingRepos = false
+
+      repos = Repo.query()
+      repos.$promise.then((results) ->
+        scope.repos = results
+      , ->
+        alert('Your repos failed to load.')
+      )
+
+    scope.toggle = (repo) ->
+      repo.processing = true
+      if repo.active
+        scope.deactivate(repo)
+      else
+        scope.activate(repo)
+
+    scope.activate = (repo) ->
+      activate = repo.$activate()
+      activate
+        .then(-> repo.processing = false)
+        .catch(-> alert('Your repo failed to activate.'))
+
+    scope.deactivate = (repo) ->
+      deactivate = repo.$deactivate()
+      deactivate
+        .then(-> repo.processing = false)
+        .catch(-> alert('Your repo failed to deactivate.'))
+
+    pollSyncStatus = ->
+      successfulSync = (results) ->
+        if results.length > 0
+          pollSyncStatus()
+        else
+          loadRepos()
+
+      failedSync = ->
+        pollSyncStatus()
+
+      getSyncs = ->
+        syncs = Sync.query()
+        syncs.$promise.then(successfulSync, failedSync)
+
+      $timeout getSyncs, 3000
+
+    scope.sync = ->
+      scope.syncingRepos = true
+
+      sync = Sync.save()
+      sync.$promise.then(->
+        pollSyncStatus()
+      , ->
+        scope.syncingRepos = false
+        alert('Your repos failed to sync.')
+      )
+
+    scope.$watch 'syncingRepos', (newValue, oldValue) ->
+      if newValue
+        scope.syncButtonText = '<%= I18n.t('syncing_repos') %>'
+      else
+        scope.syncButtonText = '<%= I18n.t('sync_repos') %>'
+
+    loadRepos().then ->
+      if scope.repos.length < 1
+        scope.sync()
+]
