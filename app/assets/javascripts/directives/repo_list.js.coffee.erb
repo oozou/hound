@@ -13,25 +13,6 @@ App.directive 'repoList', ['Repo', 'Sync', (Repo, Sync) ->
         alert('Your repos failed to load.')
       )
 
-    scope.toggle = (repo) ->
-      repo.processing = true
-      if repo.active
-        scope.deactivate(repo)
-      else
-        scope.activate(repo)
-
-    scope.activate = (repo) ->
-      activate = repo.$activate()
-      activate
-        .then(-> repo.processing = false)
-        .catch(-> alert('Your repo failed to activate.'))
-
-    scope.deactivate = (repo) ->
-      deactivate = repo.$deactivate()
-      deactivate
-        .then(-> repo.processing = false)
-        .catch(-> alert('Your repo failed to deactivate.'))
-
     pollSyncStatus = ->
       successfulSync = (results) ->
         if results.length > 0
