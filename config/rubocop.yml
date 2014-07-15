@@ -1,19 +1,10 @@
-AccessorMethodName:
-  Enabled: false
-
 Alias:
-  Enabled: false
-
-ArrayJoin:
   Enabled: false
 
 AsciiComments:
   Enabled: false
 
 AsciiIdentifiers:
-  Enabled: false
-
-Attr:
   Enabled: false
 
 BlockNesting:
@@ -28,12 +19,9 @@ CharacterLiteral:
 ClassLength:
   Enabled: false
 
-ClassVars:
-  Enabled: false
-
 CollectionMethods:
   PreferredMethods:
-    find: detect
+    find: find
     reduce: inject
     collect: map
     find_all: select
@@ -42,15 +30,6 @@ ColonMethodCall:
   Enabled: false
 
 CommentAnnotation:
-  Enabled: false
-
-CyclomaticComplexity:
-  Enabled: false
-
-Delegate:
-  Enabled: false
-
-DeprecatedHashMethods:
   Enabled: false
 
 Documentation:
@@ -62,25 +41,16 @@ DotPosition:
 DoubleNegation:
   Enabled: false
 
-EmptyLiteral:
-  Enabled: false
-
 Encoding:
-  Enabled: false
-
-EvenOdd:
   Enabled: false
 
 FileName:
   Enabled: false
 
-FlipFlop:
-  Enabled: false
-
 FormatString:
   Enabled: false
 
-GlobalVars:
+HashSyntax:
   Enabled: false
 
 IfUnlessModifier:
@@ -89,35 +59,11 @@ IfUnlessModifier:
 IfWithSemicolon:
   Enabled: false
 
-Lambda:
-  Enabled: false
-
-LambdaCall:
-  Enabled: false
-
 LineEndConcatenation:
   Enabled: false
 
 LineLength:
   Max: 80
-
-MethodLength:
-  Enabled: false
-
-ModuleFunction:
-  Enabled: false
-
-NegatedIf:
-  Enabled: false
-
-NegatedWhile:
-  Enabled: false
-
-NilComparison:
-  Enabled: false
-
-Not:
-  Enabled: false
 
 NumericLiterals:
   Enabled: false
@@ -148,10 +94,13 @@ Proc:
 RaiseArgs:
   Enabled: false
 
+RedundantSelf:
+  Enabled: false
+
 RegexpLiteral:
   Enabled: false
 
-SelfAssignment:
+RescueModifier:
   Enabled: false
 
 SingleLineBlockParams:
@@ -184,9 +133,6 @@ WhenThen:
 WhileUntilModifier:
   Enabled: false
 
-WordArray:
-  Enabled: false
-
 # Lint
 
 AmbiguousOperator:
@@ -198,12 +144,6 @@ AmbiguousRegexpLiteral:
 AssignmentInCondition:
   Enabled: false
 
-ConditionPosition:
-  Enabled: false
-
-DeprecatedClassMethods:
-  Enabled: false
-
 ElseLayout:
   Enabled: false
 
@@ -211,9 +151,6 @@ HandleExceptions:
   Enabled: false
 
 InvalidCharacterLiteral:
-  Enabled: false
-
-LiteralInCondition:
   Enabled: false
 
 LiteralInInterpolation:
@@ -226,6 +163,9 @@ ParenthesesAsGroupedExpression:
   Enabled: false
 
 RequireParentheses:
+  Enabled: false
+
+StringLiterals:
   Enabled: false
 
 UnderscorePrefixedVariableName:
