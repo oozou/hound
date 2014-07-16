@@ -50,6 +50,9 @@ FileName:
 FormatString:
   Enabled: false
 
+GuardClause:
+  Enabled: false
+
 HashSyntax:
   Enabled: false
 
