@@ -109,6 +109,9 @@ RescueModifier:
 SingleLineBlockParams:
   Enabled: false
 
+SingleSpaceBeforeFirstArg:
+  Enabled: false
+
 SingleLineMethods:
   Enabled: false
 
