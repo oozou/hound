@@ -1,36 +1,90 @@
-require 'fast_spec_helper'
-require 'app/policies/commenting_policy'
+require "attr_extras"
+require "fast_spec_helper"
+require "app/policies/commenting_policy"
 
-describe CommentingPolicy, '#comment_permitted?' do
-  context 'when pull request is opened' do
-    it 'returns true' do
-      pull_request = double(
-        :pull_request,
-        opened?: true,
-        head_includes?: false,
-      )
-      comment = double(:comment, line: double(:line))
-      commenting_policy = CommentingPolicy.new
+describe CommentingPolicy do
+  describe "#allowed_for?" do
+    context "when line with violation has not been previously commented on" do
+      it "returns true" do
+        pull_request = stub_pull_request
+        commenting_policy = CommentingPolicy.new(pull_request)
 
-      result = commenting_policy.comment_permitted?(pull_request, comment)
+        expect(commenting_policy).to be_allowed_for(stub_violation)
+      end
+    end
 
-      expect(result).to be_true
+    context "when line with violation has been previously commented on" do
+      context "when comment includes violation message" do
+        it "returns false" do
+          violation = stub_violation(
+            filename: "foo.rb",
+            messages: ["Trailing whitespace detected"],
+          )
+          comment = stub_comment(
+            body: "Trailing whitespace detected<br>Extra newline",
+            original_position: violation.patch_position,
+            path: violation.filename,
+          )
+          pull_request = stub_pull_request(comments: [comment])
+          commenting_policy = CommentingPolicy.new(pull_request)
+
+          expect(commenting_policy).not_to be_allowed_for(violation)
+        end
+      end
+
+      context "when comment exists for the same line but different files" do
+        it "returns true" do
+          violation = stub_violation(
+            filename: "foo.rb",
+            messages: ["Trailing whitespace detected"],
+          )
+          comment = stub_comment(
+            body: "Trailing whitespace detected",
+            original_position: violation.patch_position,
+            path: "bar.rb",
+          )
+          pull_request = stub_pull_request(comments: [comment])
+          commenting_policy = CommentingPolicy.new(pull_request)
+
+          expect(commenting_policy).to be_allowed_for(violation)
+        end
+      end
+
+      context "when comment does not include violation message" do
+        it "returns true" do
+          violation = stub_violation(
+            filename: "foo.rb",
+            messages: ["Trailing whitespace detected"],
+          )
+          comment = stub_comment(
+            body: "Extra newline",
+            original_position: violation.patch_position,
+            path: violation.filename,
+          )
+          pull_request = stub_pull_request(comments: [comment])
+          commenting_policy = CommentingPolicy.new(pull_request)
+
+          expect(commenting_policy).to be_allowed_for(violation)
+        end
+      end
     end
   end
 
-  context 'when the given line is included in the most recent commit' do
-    it 'returns true' do
-      pull_request = double(
-        :pull_request,
-        opened?: false,
-        head_includes?: true,
-      )
-      comment = double(:comment, line: double(:line))
-      commenting_policy = CommentingPolicy.new
+  def stub_comment(options = {})
+    double(:comment, options)
+  end
 
-      result = commenting_policy.comment_permitted?(pull_request, comment)
+  def stub_violation(options = {})
+    defaults = {
+      filename: "foo.rb",
+      messages: ["Extra newline"],
+      patch_position: 1,
+    }
+    double(:violation, defaults.merge(options))
+  end
 
-      expect(result).to be_true
-    end
+  def stub_pull_request(options = {})
+    defaults = { opened?: true, comments: [] }
+    double(:pull_request, defaults.merge(options))
   end
 end

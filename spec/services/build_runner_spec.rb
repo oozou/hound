@@ -4,89 +4,75 @@ describe BuildRunner, '#run' do
   context 'with active repo and opened pull request' do
     it 'creates a build record with violations' do
       repo = create(:repo, :active, github_id: 123)
-      build_runner = BuildRunner.new(stubbed_payload(repo))
+      payload = stubbed_payload(
+        github_repo_id: repo.github_id,
+        pull_request_number: 5,
+        head_sha: "123abc",
+      )
+      build_runner = BuildRunner.new(payload)
       stubbed_style_checker_with_violations
       stubbed_commenter
       stubbed_pull_request
-      stubbed_file_collection
 
-      expect { build_runner.run }.to change { Build.count }.by(1)
-      expect(Build.last).to eq repo.builds.last
-      expect(Build.last.violations).to have_at_least(1).violation
+      build_runner.run
+      build = Build.first
+
+      expect(Build.count).to eq 1
+      expect(build).to eq repo.builds.last
+      expect(build.violations.size).to be >= 1
+      expect(build.pull_request_number).to eq 5
+      expect(build.commit_sha).to eq payload.head_sha
+      expect(analytics).to have_tracked("Reviewed Repo").
+        for_user(repo.users.first).
+        with(properties: { name: repo.full_github_name })
     end
 
     it 'comments on violations' do
-      repo = create(:repo, :active, github_id: 123)
-      build_runner = BuildRunner.new(stubbed_payload(repo))
+      build_runner = make_build_runner
       commenter = stubbed_commenter
       style_checker = stubbed_style_checker_with_violations
-      pull_request = stubbed_pull_request
-      stubbed_file_collection
+      commenter = Commenter.new(stubbed_pull_request)
+      allow(Commenter).to receive(:new).and_return(commenter)
 
       build_runner.run
 
-      expect(commenter).to have_received(:comment_on_violations).with(
-        style_checker.violations,
-        pull_request
-      )
+      expect(commenter).to have_received(:comment_on_violations).
+        with(style_checker.violations)
     end
 
     it 'initializes StyleChecker with modified files and config' do
-      repo = create(:repo, :active, github_id: 123)
-      build_runner = BuildRunner.new(stubbed_payload(repo))
+      build_runner = make_build_runner
       pull_request = stubbed_pull_request
-      file_collection = stubbed_file_collection
       stubbed_style_checker_with_violations
       stubbed_commenter
 
       build_runner.run
 
-      expect(StyleChecker).to have_received(:new).with(
-        file_collection.relevant_files,
-        pull_request.config
-      )
-    end
-
-    it 'initializes FileCollection with pull request files' do
-      repo = create(:repo, :active, github_id: 123)
-      build_runner = BuildRunner.new(stubbed_payload(repo))
-      pull_request = stubbed_pull_request
-      stubbed_file_collection
-      stubbed_style_checker_with_violations
-      stubbed_commenter
-
-      build_runner.run
-
-      expect(FileCollection).to have_received(:new).with(
-        pull_request.pull_request_files
-      )
+      expect(StyleChecker).to have_received(:new).with(pull_request)
     end
 
     it 'initializes PullRequest with payload and Hound token' do
       repo = create(:repo, :active, github_id: 123)
-      payload = stubbed_payload(repo)
+      payload = stubbed_payload(github_repo_id: repo.github_id)
       build_runner = BuildRunner.new(payload)
       stubbed_pull_request
-      stubbed_file_collection
       stubbed_style_checker_with_violations
       stubbed_commenter
 
       build_runner.run
 
-      expect(PullRequest).to have_received(:new).with(
-        payload,
-        ENV['HOUND_GITHUB_TOKEN']
-      )
+      expect(PullRequest).to have_received(:new).
+        with(payload, ENV["HOUND_GITHUB_TOKEN"])
     end
   end
 
   context 'without active repo' do
     it 'does not attempt to comment' do
       repo = create(:repo, :inactive)
-      Commenter.stub(:new)
-      runner = BuildRunner.new(double(:payload, github_repo_id: repo.github_id))
+      build_runner = make_build_runner(repo: repo)
+      allow(Commenter).to receive(:new)
 
-      runner.run
+      build_runner.run
 
       expect(Commenter).not_to have_received(:new)
     end
@@ -94,34 +80,39 @@ describe BuildRunner, '#run' do
 
   context 'without opened or synchronize pull request' do
     it 'does not attempt to comment' do
-      repo = create(:repo, :active)
+      build_runner = make_build_runner
       pull_request = stubbed_pull_request
-      pull_request.stub(opened?: false)
-      pull_request.stub(synchronize?: false)
-      Commenter.stub(:new)
-      runner = BuildRunner.new(double(:payload, github_repo_id: repo.github_id))
+      allow(pull_request).
+        to receive_messages(opened?: false, synchronize?: false)
+      allow(Commenter).to receive(:new)
 
-      runner.run
+      build_runner.run
 
       expect(Commenter).not_to have_received(:new)
     end
   end
 
-  def stubbed_payload(repo)
-    double(:payload, github_repo_id: repo.github_id)
+  def make_build_runner(repo: create(:repo, :active, github_id: 123))
+    payload = stubbed_payload(github_repo_id: repo.github_id)
+    BuildRunner.new(payload)
+  end
+
+  def stubbed_payload(options = {})
+    defaults = { pull_request_number: 123, head_sha: "somesha" }
+    double("Payload", defaults.merge(options))
   end
 
   def stubbed_style_checker_with_violations
     violations = [double(:violation)]
     style_checker = double(:style_checker, violations: violations)
-    StyleChecker.stub(new: style_checker)
+    allow(StyleChecker).to receive(:new).and_return(style_checker)
 
     style_checker
   end
 
   def stubbed_commenter
     commenter = double(:commenter).as_null_object
-    Commenter.stub(new: commenter)
+    allow(Commenter).to receive(:new).and_return(commenter)
 
     commenter
   end
@@ -133,15 +124,8 @@ describe BuildRunner, '#run' do
       config: double(:config),
       opened?: true
     )
-    PullRequest.stub(new: pull_request)
+    allow(PullRequest).to receive(:new).and_return(pull_request)
 
     pull_request
-  end
-
-  def stubbed_file_collection
-    file_collection = double(:file_collection, relevant_files: [double(:file)])
-    FileCollection.stub(new: file_collection)
-
-    file_collection
   end
 end

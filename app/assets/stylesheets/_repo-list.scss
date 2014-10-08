@@ -1,11 +1,10 @@
 .repo-listing {
-  box-shadow: 0 1px 10px 0 rgba(0,0,0,0.1);
   border: 1px solid $base-border-color;
-  margin-top: 2em;
+  box-shadow: 0 1px 10px 0 rgba(0,0,0,0.1);
 
   @include media($small-screen) {
     box-shadow: none;
-    margin: 2em -1em;
+    margin: 1em -1em;
   }
 
   nav {
@@ -61,7 +60,6 @@
         border: none;
         border-radius: 3px;
         color: #fff;
-        display: block;
         display: block;
         font-size: 1.2em;
         margin: 0;
@@ -139,16 +137,24 @@
       border: none;
     }
 
-    span.name {
+    .repo-name {
       @include transition(all 0.25s linear);
       color: rgb(160,160,160);
       display: block;
       font-size: 1.4em;
       font-weight: 300;
       text-overflow: ellipsis;
-      margin-right: 3em;
       overflow: hidden;
       position: relative;
+      padding-left: 1em;
+
+      &.private:before {
+        @include position(absolute, .25em 0 0 0px);
+        content: $icon-lock;
+        font-family: $icon-font;
+        font-size: .8em;
+        opacity: .5;
+      }
     }
 
     .toggle {
@@ -183,8 +189,8 @@
         visibility: visible;
       }
 
-      span.name {
-        padding-left: 0.9em;
+      .repo-name {
+        margin-left: 1em;
       }
     }
 
@@ -202,6 +208,30 @@
           border-color: #fff;
         }
       }
+    }
+  }
+
+  @include media($small-screen) {
+    border-top: none;
+    margin-top: -1em;
+
+    input.search {
+      font-size: 1em;
+      padding-right: 2.5em !important;
+
+      &[placeholder] {
+        font-size: 1em;
+        text-overflow: ellipsis;
+      }
+    }
+
+    .repo-name {
+      font-size: 1.1em !important;
+    }
+
+    .repo:before {
+      font-size: 1em !important;
+      top: 1.2em !important;
     }
   }
 }

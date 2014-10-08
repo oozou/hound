@@ -1,13 +1,16 @@
-require 'octokit'
-require 'base64'
+require "octokit"
+require "base64"
+require "active_support/core_ext/object/with_options"
 
 class GithubApi
-  SERVICES_TEAM_NAME = 'Services'
+  SERVICES_TEAM_NAME = "Services"
+  PREVIEW_MEDIA_TYPE =
+    ::Octokit::Client::Organizations::ORG_INVITATIONS_PREVIEW_MEDIA_TYPE
 
-  attr_reader :client
+  pattr_initialize :token
 
-  def initialize(token)
-    @client = Octokit::Client.new(access_token: token)
+  def client
+    @client ||= Octokit::Client.new(access_token: token)
   end
 
   def repos
@@ -30,26 +33,28 @@ class GithubApi
 
   def add_comment(options)
     client.create_pull_request_comment(
-      options[:repo_name],
+      options[:commit].repo_name,
       options[:pull_request_number],
       options[:comment],
-      options[:commit],
+      options[:commit].sha,
       options[:filename],
-      options[:line_number]
+      options[:patch_position]
     )
   end
 
   def create_hook(full_repo_name, callback_endpoint)
     hook = client.create_hook(
       full_repo_name,
-      'web',
+      "web",
       { url: callback_endpoint },
-      { events: ['pull_request'], active: true }
+      { events: ["pull_request"], active: true }
     )
 
     yield hook if block_given?
   rescue Octokit::UnprocessableEntity => error
-    unless error.message.include? 'Hook already exists'
+    if error.message.include? "Hook already exists"
+      true
+    else
       raise
     end
   end
@@ -58,9 +63,8 @@ class GithubApi
     client.remove_hook(full_github_name, hook_id)
   end
 
-  def commit_files(full_repo_name, commit_sha)
-    commit = client.commit(full_repo_name, commit_sha)
-    commit.files
+  def pull_request_comments(full_repo_name, pull_request_number)
+    client.pull_request_comments(full_repo_name, pull_request_number)
   end
 
   def pull_request_files(full_repo_name, number)
@@ -76,8 +80,21 @@ class GithubApi
   end
 
   def email_address
-    primary_email = client.emails.detect { |email| email['primary'] }
-    primary_email['email']
+    primary_email = client.emails.detect { |email| email["primary"] }
+    primary_email["email"]
+  end
+
+  def accept_pending_invitations
+    with_preview_client do |preview_client|
+      pending_memberships =
+        preview_client.organization_memberships(state: "pending")
+      pending_memberships.each do |pending_membership|
+        preview_client.update_organization_membership(
+          pending_membership["organization"]["login"],
+          state: "active"
+        )
+      end
+    end
   end
 
   private
@@ -114,7 +131,11 @@ class GithubApi
   end
 
   def add_user_to_team(username, team_id)
-    client.add_team_member(team_id, username)
+    with_preview_client do |preview_client|
+      preview_client.add_team_membership(team_id, username)
+    end
+  rescue Octokit::NotFound
+    false
   end
 
   def find_team(name, repo)
@@ -124,14 +145,18 @@ class GithubApi
   end
 
   def create_team(name, repo)
-    client.create_team(
-      repo.organization.login,
-      {
-        name: name,
-        repo_names: [repo.full_name],
-        permission: 'pull'
-      }
-    )
+    team_options = {
+      name: name,
+      repo_names: [repo.full_name],
+      permission: "pull"
+    }
+    client.create_team(repo.organization.login, team_options)
+  rescue Octokit::UnprocessableEntity => e
+    if team_exists_exception?(e)
+      find_team(name, repo)
+    else
+      raise
+    end
   end
 
   def user_repos
@@ -171,5 +196,15 @@ class GithubApi
 
   def authorized_repos(repos)
     repos.select {|repo| repo.permissions.admin }
+  end
+
+  def team_exists_exception?(exception)
+    exception.errors.any? do |error|
+      error[:field] == "name" && error[:code] == "already_exists"
+    end
+  end
+
+  def with_preview_client(&block)
+    client.with_options(accept: PREVIEW_MEDIA_TYPE, &block)
   end
 end

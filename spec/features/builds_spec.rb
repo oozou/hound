@@ -12,7 +12,7 @@ feature 'Builds' do
 
   context 'with payload nesting' do
     scenario 'a successful build with custom config' do
-      repo = create(:repo, github_id: repo_id, full_github_name: repo_name)
+      create(:repo, github_id: repo_id, full_github_name: repo_name)
       stub_github_requests_with_no_violations
       comment_request = stubbed_comment_request
 
@@ -24,7 +24,7 @@ feature 'Builds' do
 
   context 'without payload nesting' do
     scenario 'a successful build with custom config' do
-      repo = create(:repo, github_id: repo_id, full_github_name: repo_name)
+      create(:repo, github_id: repo_id, full_github_name: repo_name)
       stub_github_requests_with_no_violations
       comment_request = stubbed_comment_request
 
@@ -35,13 +35,14 @@ feature 'Builds' do
   end
 
   scenario 'a failed build' do
-    repo = create(
-      :repo,
-      :active,
-      github_id: repo_id,
-      full_github_name: repo_name
-    )
+    create(:repo, :active, github_id: repo_id, full_github_name: repo_name)
     stub_github_requests_with_violations
+    stub_commit_request(repo_name, pr_sha, ENV["HOUND_GITHUB_TOKEN"])
+    stub_pull_request_comments_request(
+      repo_name,
+      pr_number,
+      ENV['HOUND_GITHUB_TOKEN']
+    )
     comment_request = stubbed_comment_request
 
     page.driver.post builds_path, payload: payload
@@ -85,7 +86,7 @@ feature 'Builds' do
       fixture: 'config_contents.json'
     )
     stub_contents_request(
-      ENV['HOUND_GITHUB_TOKEN'],
+      ENV["HOUND_GITHUB_TOKEN"],
       repo_name: repo_name,
       sha: pr_sha,
       fixture: 'contents_with_violations.json'

@@ -8,16 +8,18 @@ FactoryGirl.define do
   end
 
   factory :repo do
+    trait(:active) { active true }
+    trait(:inactive) { active false }
+    trait(:in_private_org) do
+      active true
+      in_organization true
+      private true
+    end
+
     sequence(:full_github_name) { |n| "user/repo#{n}" }
     sequence(:github_id) { |n| n }
-
-    trait :active do
-      active true
-    end
-
-    trait :inactive do
-      active false
-    end
+    private false
+    in_organization false
 
     after(:create) do |repo|
       if repo.users.empty?
@@ -28,10 +30,24 @@ FactoryGirl.define do
 
   factory :user do
     sequence(:github_username) { |n| "github#{n}" }
+
+    trait :with_email do
+      sequence(:email_address) { |n| "jimtom+#{n}@example.com" }
+    end
   end
 
   factory :membership do
     user
     repo
+  end
+
+  factory :subscription do
+    trait(:inactive) { deleted_at { 1.day.ago } }
+
+    sequence(:stripe_subscription_id) { |n| "stripesubscription#{n}" }
+
+    price { repo.plan_price }
+    repo
+    user
   end
 end

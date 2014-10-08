@@ -167,25 +167,50 @@ module GithubApiHelper
     )
   end
 
+  def stub_chained_org_teams_request(org_name, token)
+    no_services_team_json_response =
+      File.read("spec/support/fixtures/repo_teams.json")
+    services_team_json_response =
+      File.read("spec/support/fixtures/org_teams_with_services_team.json")
+    stub_request(
+      :get,
+      "https://api.github.com/orgs/#{org_name}/teams"
+    ).with(
+      headers: { "Authorization" => "token #{token}" }
+    ).to_return(
+      status: 200,
+      body: no_services_team_json_response,
+      headers: { "Content-Type" => "application/json; charset=utf-8" }
+    ).then.to_return(
+      status: 200,
+      body: services_team_json_response,
+      headers: { "Content-Type" => "application/json; charset=utf-8" }
+    )
+  end
+
   def stub_add_user_to_team_request(username, team_id, token = auth_token)
     stub_request(
       :put,
-      "https://api.github.com/teams/#{team_id}/members/#{username}"
+      "https://api.github.com/teams/#{team_id}/memberships/#{username}"
     ).with(
-      body: { name: username }.to_json,
-      headers: { 'Authorization' => "token #{token}" }
+      headers: {
+        "Authorization" => "token #{token}",
+        "Accept" => "application/vnd.github.the-wasp-preview+json"
+      }
     ).to_return(
-      status: 204
+      status: 200
     )
   end
 
   def stub_failed_add_user_to_team_request(username, team_id, token)
     stub_request(
       :put,
-      "https://api.github.com/teams/#{team_id}/members/#{username}"
+      "https://api.github.com/teams/#{team_id}/memberships/#{username}"
     ).with(
-      body: { name: username }.to_json,
-      headers: { 'Authorization' => "token #{token}" }
+      headers: {
+        "Authorization" => "token #{token}",
+        "Accept" => "application/vnd.github.the-wasp-preview+json"
+      }
     ).to_return(
       status: 404
     )
@@ -377,6 +402,48 @@ module GithubApiHelper
         position: line_number
       }.to_json
     ).to_return(status: 200)
+  end
+
+  def stub_pull_request_comments_request(full_repo_name, pull_request_number, token = auth_token)
+    stub_request(
+      :get,
+      "https://api.github.com/repos/#{full_repo_name}/pulls/#{pull_request_number}/comments"
+    ).with(
+      headers: { 'Authorization' => "token #{token}" }
+    ).to_return(
+      status: 200,
+      body: File.read('spec/support/fixtures/pull_request_comments.json'),
+      headers: { 'Content-Type' => 'application/json; charset=utf-8' }
+    )
+  end
+
+  def stubbed_memberships_request(token)
+    stub_request(
+      :get,
+      "https://api.github.com/user/memberships/orgs?state=pending"
+    ).with(
+      headers: { "Authorization" => "token #{token}" }
+    ).to_return(
+      status: 200,
+      body: File.read("spec/support/fixtures/github_org_memberships.json"),
+      headers: { "Content-Type" => "application/json; charset=utf-8" }
+    )
+  end
+
+  def stubbed_membership_update_request(token)
+    stub_request(
+      :patch,
+      "https://api.github.com/user/memberships/orgs/invitocat"
+    ).with(
+      headers: { "Authorization" => "token #{token}" },
+      body: { "state" => "active" }
+    ).to_return(
+      status: 200,
+      body: File.read(
+        "spec/support/fixtures/github_org_membership_update.json"
+      ),
+      headers: { "Content-Type" => "application/json; charset=utf-8" }
+    )
   end
 
   private

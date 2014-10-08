@@ -1,18 +1,14 @@
 require 'json'
 
 class Payload
-  attr_reader :data
+  pattr_initialize :unparsed_data
 
-  def initialize(data)
-    if data.is_a? String
-      @data = JSON.parse(data)
-    else
-      @data = data
-    end
+  def data
+    @data ||= parse_data
   end
 
   def head_sha
-    data['pull_request']['head']['sha']
+    pull_request.fetch("head", {})["sha"]
   end
 
   def github_repo_id
@@ -23,7 +19,7 @@ class Payload
     data['repository']['full_name']
   end
 
-  def number
+  def pull_request_number
     data['number']
   end
 
@@ -32,10 +28,24 @@ class Payload
   end
 
   def changed_files
-    data['pull_request']['changed_files']
+    pull_request["changed_files"] || 0
   end
 
   def ping?
     data['zen']
+  end
+
+  private
+
+  def parse_data
+    if unparsed_data.is_a? String
+      JSON.parse(unparsed_data)
+    else
+      unparsed_data
+    end
+  end
+
+  def pull_request
+    data.fetch("pull_request", {})
   end
 end

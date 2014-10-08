@@ -1,3 +1,13 @@
+AllCops:
+  Exclude:
+    - db/schema.rb
+
+AccessorMethodName:
+  Enabled: false
+
+ActionFilter:
+  Enabled: false
+
 Alias:
   Enabled: false
 
@@ -14,6 +24,9 @@ CaseEquality:
   Enabled: false
 
 CharacterLiteral:
+  Enabled: false
+
+ClassAndModuleChildren:
   Enabled: false
 
 ClassLength:
@@ -41,6 +54,12 @@ DotPosition:
 DoubleNegation:
   Enabled: false
 
+EachWithObject:
+  Enabled: false
+
+EmptyLiteral:
+  Enabled: false
+
 Encoding:
   Enabled: false
 
@@ -56,10 +75,22 @@ GuardClause:
 HashSyntax:
   Enabled: false
 
+GuardClause:
+  Enabled: false
+
 IfUnlessModifier:
   Enabled: false
 
 IfWithSemicolon:
+  Enabled: false
+
+InlineComment:
+  Enabled: false
+
+Lambda:
+  Enabled: false
+
+LambdaCall:
   Enabled: false
 
 LineEndConcatenation:
@@ -67,6 +98,27 @@ LineEndConcatenation:
 
 LineLength:
   Max: 80
+
+MethodLength:
+  Enabled: false
+
+ModuleFunction:
+  Enabled: false
+
+NegatedIf:
+  Enabled: false
+
+NegatedWhile:
+  Enabled: false
+
+Next:
+  Enabled: false
+
+NilComparison:
+  Enabled: false
+
+Not:
+  Enabled: false
 
 NumericLiterals:
   Enabled: false
@@ -81,8 +133,7 @@ ParameterLists:
   Enabled: false
 
 PercentLiteralDelimiters:
-  PreferredDelimiters:
-    '%': '{}'
+  Enabled: false
 
 PerlBackrefs:
   Enabled: false
@@ -117,6 +168,9 @@ SignalException:
 
 SpecialGlobalVars:
   Enabled: false
+
+StringLiterals:
+  EnforcedStyle: double_quotes
 
 VariableInterpolation:
   Enabled: false

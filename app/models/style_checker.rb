@@ -1,40 +1,51 @@
+# Filters files to reviewable subset.
+# Builds style guide based on file extension.
+# Delegates to style guide for line violations.
 class StyleChecker
-  def initialize(modified_files, custom_config = nil)
-    @modified_files = modified_files
-    @custom_config = custom_config
+  def initialize(pull_request)
+    @pull_request = pull_request
+    @style_guides = {}
   end
 
   def violations
-    file_violations = @modified_files.map do |modified_file|
-      FileViolation.new(modified_file.filename, line_violations(modified_file))
-    end
-
-    file_violations.select do |file_violation|
-      file_violation.line_violations.any?
-    end
+    @violations ||= Violations.new.push(*violations_in_checked_files).to_a
   end
 
   private
 
-  def line_violations(modified_file)
-    violations = style_guide.violations(modified_file)
-    violations = violations_on_changed_lines(modified_file, violations)
+  attr_reader :pull_request, :style_guides
 
-    violations.group_by(&:line).map do |line_number, violations|
-      message = violations.map(&:message).uniq
-      modified_line = modified_file.modified_line_at(line_number)
-
-      LineViolation.new(modified_line, message)
+  def violations_in_checked_files
+    files_to_check.flat_map do |file|
+      style_guide(file.filename).violations_in_file(file)
     end
   end
 
-  def violations_on_changed_lines(modified_file, violations)
-    violations.select do |violation|
-      modified_file.relevant_line?(violation.line)
+  def files_to_check
+    pull_request.pull_request_files.reject(&:removed?).select do |file|
+      style_guide(file.filename).enabled?
     end
   end
 
-  def style_guide
-    @style_guide ||= StyleGuide.new(@custom_config)
+  def style_guide(filename)
+    style_guide_class = style_guide_class(filename)
+    style_guides[style_guide_class] ||= style_guide_class.new(config)
+  end
+
+  def style_guide_class(filename)
+    case filename
+    when /.+\.rb\z/
+      StyleGuide::Ruby
+    when /.+\.coffee\z/
+      StyleGuide::CoffeeScript
+    when /.+\.js\z/
+      StyleGuide::JavaScript
+    else
+      StyleGuide::Unsupported
+    end
+  end
+
+  def config
+    @config ||= RepoConfig.new(pull_request.head_commit)
   end
 end
